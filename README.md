@@ -11,8 +11,9 @@ Una aplicación en Python que utiliza **Scapy** y **Pygame** para crear una visu
 ### 🔍 **Detección de Red**
 - **Descubrimiento automático** de la red local
 - **Escaneo continuo** con paquetes ICMP cada 1-3 segundos
-- **Ping continuo** a hosts conocidos cada 2 segundos
+- **Ping continuo** a hosts conocidos cada 5 segundos
 - **Optimización ARP** para reducir tráfico de red
+- **Resolución de hostnames** y detección de tipos de dispositivo
 
 ### 🎨 **Visualización Avanzada**
 - **Radar militar** en tiempo real con barrido rotatorio
@@ -28,6 +29,33 @@ Una aplicación en Python que utiliza **Scapy** y **Pygame** para crear una visu
 - **Identificación automática** de tipos de dispositivo (Router, PC, Smartphone, etc.)
 - **Panel de información** en tiempo real
 - **Optimización de rendimiento** para 60 FPS
+
+### 📊 **Network Health Dashboard** (NUEVO)
+- **Estado de salud de la red** en tiempo real
+- **Clasificación de hosts**: Saludables (<20ms), Degradados (20-50ms), Críticos (>50ms)
+- **Detección de anomalías**: Latencia alta, jitter alto
+- **Barra de calidad** visual con porcentaje
+
+### 📈 **Gráfica de Latencia en Tiempo Real** (NUEVO)
+- **Visualización continua** de la latencia promedio
+- **Historial de 60 puntos** actualizados en tiempo real
+- **Codificación por color** según rendimiento
+- **Detección de tendencias** y picos de latencia
+
+### 🔎 **Sistema de Filtros y Búsqueda** (NUEVO)
+- **Búsqueda por IP o hostname** en tiempo real
+- **Filtros de latencia**: Todos, <20ms, <50ms, >50ms
+- **Búsqueda inteligente** por tipo de dispositivo
+- **Resultados instantáneos** en las tablas
+
+### 🎯 **Paquetes ICMP Personalizados** (NUEVO)
+- **4 tipos de paquetes ICMP** disponibles:
+  - Type 8: Echo Request (Ping normal)
+  - Type 13: Timestamp Request
+  - Type 15: Information Request
+  - Type 17: Address Mask Request
+- **Click en hosts** para enviar paquetes personalizados
+- **Resultados en tiempo real** con latencia
 
 ## 🚀 Uso Básico
 
@@ -168,7 +196,12 @@ Los hosts permanecen visibles según el tiempo configurado:
 |--------|---------|
 | **Salir** | ESC o cerrar ventana |
 | **Ver detalles** | Hover sobre host |
-| **Información** | Panel superior derecho |
+| **Enviar ICMP personalizado** | Click en host del radar |
+| **Cambiar tipo ICMP** | Click en botones inferiores |
+| **Buscar host** | Escribir texto (auto-búsqueda) |
+| **Borrar búsqueda** | Backspace |
+| **Limpiar filtros** | Tecla 'C' |
+| **Filtrar por latencia** | Click en botones de filtro |
 
 ## 📊 Interpretación de Resultados
 

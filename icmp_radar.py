@@ -48,7 +48,7 @@ def handle_thread_exception(args):
 threading.excepthook = handle_thread_exception
 
 class ICMPRadarApp:
-    def __init__(self, network_range=None, scan_interval=1, window_size=(800, 600)):
+    def __init__(self, network_range=None, scan_interval=3, window_size=(1400, 800)):
         """
         Inicializa la aplicación ICMP Radar
         
@@ -68,6 +68,10 @@ class ICMPRadarApp:
         self.running = False
         self.scan_status = "Inicializando"
         self.last_scan_time = 0
+        
+        # Cache para optimización de rendimiento
+        self.cached_anomalies = {}
+        self.last_anomaly_check = 0
         
         # Configurar red
         self._setup_network()
@@ -138,33 +142,36 @@ class ICMPRadarApp:
             
             # Bucle principal de visualización
             clock = pygame.time.Clock()
-            frame_count = 0
-            fps_timer = time.time()
             
             while self.running:
-                # Manejar eventos de Pygame
-                if not self.radar.handle_events():
+                # Manejar eventos de Pygame (pasar scanner para paquetes personalizados)
+                if not self.radar.handle_events(self.scanner):
                     break
                 
-                # Obtener hosts activos y MACs aprendidas (cache para evitar múltiples accesos)
                 # Obtener hosts activos y MACs aprendidas (thread-safe)
                 active_hosts = self.scanner.get_active_hosts()
                 learned_macs = self.scanner.get_learned_macs()
+                offline_hosts = self.scanner.get_offline_hosts()
+                statistics = self.scanner.get_statistics()
                 
-                # Actualizar visualización
-                self.radar.update_display(active_hosts, self.scan_status, learned_macs)
+                # Detectar anomalías solo cada 2 segundos (optimización de FPS)
+                current_time = time.time()
+                if current_time - self.last_anomaly_check >= 2.0:
+                    self.cached_anomalies = self.scanner.detect_anomalies()
+                    self.last_anomaly_check = current_time
+                
+                # Actualizar visualización con nuevos parámetros
+                self.radar.update_display(
+                    active_hosts=active_hosts,
+                    statistics=statistics,
+                    offline_hosts=offline_hosts,
+                    anomalies=self.cached_anomalies,
+                    learned_macs=learned_macs,
+                    scanner=self.scanner
+                )
                 
                 # Control preciso de FPS
                 clock.tick(60)  # 60 FPS exactos
-                
-                # Debug FPS cada 5 segundos
-                frame_count += 1
-                if time.time() - fps_timer > 5.0:
-                    actual_fps = frame_count / 5.0
-                    if actual_fps < 30:  # Solo mostrar si hay problemas de rendimiento
-                        print(f"[FPS] Rendimiento: {actual_fps:.1f} FPS")
-                    frame_count = 0
-                    fps_timer = time.time()
         
         except KeyboardInterrupt:
             print("\n[STOP] Deteniendo aplicación...")
@@ -242,14 +249,14 @@ Nota: Requiere permisos de administrador para enviar paquetes ICMP
     parser.add_argument(
         "-i", "--interval",
         type=float,
-        help="Intervalo entre escaneos en segundos (default: 1.0)",
-        default=1.0
+        help="Intervalo entre escaneos en segundos (default: 3.0)",
+        default=3.0
     )
     
     parser.add_argument(
         "-s", "--size",
-        help="Tamaño de ventana WIDTHxHEIGHT (default: 800x600)",
-        default="800x600"
+        help="Tamaño de ventana WIDTHxHEIGHT (default: 1400x800)",
+        default="1400x800"
     )
     
     parser.add_argument(
