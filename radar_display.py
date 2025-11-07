@@ -76,11 +76,6 @@ class RadarDisplay:
         self.icmp_result_text = ""
         self.icmp_result_time = 0
         
-        # Filtros y búsqueda
-        self.filter_latency = None  # None = sin filtro, o valor en ms
-        self.filter_device_type = None  # None = todos, o tipo específico
-        self.search_query = ""
-        
         # Gráfica de latencia promedio
         self.latency_graph_history = []  # Historial de latencia promedio (últimos 60 valores)
         self.max_graph_points = 60
@@ -386,8 +381,9 @@ class RadarDisplay:
         y += 15
         
         # Anomalías
-        anomaly_text = self.font_small.render(f"Anomalias:", True, self.WHITE)
-        self.screen.blit(anomaly_text, (panel_x + 10, y))
+        anomaly_text = self.font_small.render("Anomalias:", True, self.WHITE)
+        anomaly_text_width = anomaly_text.get_width()
+        self.screen.blit(anomaly_text, (panel_x + panel_width - anomaly_text_width - 10, y))
         y += 20
         
         if high_latency_count > 0:
@@ -413,7 +409,8 @@ class RadarDisplay:
         
         # Texto de calidad (arriba de la barra)
         percent_text = self.font_small.render(f"Calidad: {network_quality:.0f}%", True, self.WHITE)
-        self.screen.blit(percent_text, (bar_x, bar_y - 18))
+        percent_text_width = percent_text.get_width()
+        self.screen.blit(percent_text, (panel_x + panel_width - percent_text_width - 10, bar_y - 18))
         
         # Fondo de la barra
         pygame.draw.rect(self.screen, (50, 50, 50), (bar_x, bar_y, bar_width, bar_height))
@@ -580,136 +577,6 @@ class RadarDisplay:
             label_width = label_current.get_width()
             self.screen.blit(label_current, (graph_x + graph_width - label_width - 10, graph_y + 5))
     
-    def draw_filters_panel(self):
-        """
-        Dibuja panel de filtros y búsqueda
-        """
-        panel_width = 350
-        panel_height = 120
-        panel_x = self.width - panel_width - 10
-        panel_y = 590  # Debajo de la gráfica
-        
-        # Fondo
-        panel_surface = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)
-        panel_surface.fill((0, 0, 30, 220))
-        self.screen.blit(panel_surface, (panel_x, panel_y))
-        
-        # Borde
-        pygame.draw.rect(self.screen, self.BRIGHT_GREEN, (panel_x, panel_y, panel_width, panel_height), 2)
-        
-        # Título
-        title = self.font_medium.render("FILTROS Y BUSQUEDA", True, self.BRIGHT_GREEN)
-        self.screen.blit(title, (panel_x + 10, panel_y + 8))
-        
-        # Línea separadora
-        pygame.draw.line(self.screen, self.GREEN, (panel_x + 5, panel_y + 35), 
-                        (panel_x + panel_width - 5, panel_y + 35), 1)
-        
-        y = panel_y + 45
-        
-        # Búsqueda por IP/Hostname
-        search_label = self.font_small.render("Buscar (IP/Host):", True, self.WHITE)
-        self.screen.blit(search_label, (panel_x + 10, y))
-        y += 18
-        
-        # Campo de búsqueda
-        search_box_rect = pygame.Rect(panel_x + 10, y, 250, 20)
-        pygame.draw.rect(self.screen, (40, 40, 60), search_box_rect)
-        pygame.draw.rect(self.screen, self.GREEN, search_box_rect, 1)
-        
-        search_text = self.font_small.render(self.search_query or "...", True, 
-                                            self.WHITE if self.search_query else self.GRAY)
-        self.screen.blit(search_text, (panel_x + 15, y + 4))
-        y += 30
-        
-        # Filtro de latencia
-        lat_label = self.font_small.render("Latencia:", True, self.WHITE)
-        self.screen.blit(lat_label, (panel_x + 10, y))
-        
-        # Botones de filtro de latencia
-        filter_buttons = [
-            ("Todos", None),
-            ("<20ms", 20),
-            ("<50ms", 50),
-            (">50ms", 51)
-        ]
-        
-        btn_x = panel_x + 80
-        for text, value in filter_buttons:
-            btn_width = 60
-            btn_rect = pygame.Rect(btn_x, y - 2, btn_width, 18)
-            
-            # Color según si está seleccionado
-            if self.filter_latency == value:
-                btn_color = self.GREEN
-                text_color = self.BLACK
-                pygame.draw.rect(self.screen, btn_color, btn_rect)
-            else:
-                btn_color = (40, 40, 60)
-                text_color = self.WHITE
-                pygame.draw.rect(self.screen, btn_color, btn_rect)
-                pygame.draw.rect(self.screen, self.GREEN, btn_rect, 1)
-            
-            btn_text = self.font_small.render(text, True, text_color)
-            text_rect = btn_text.get_rect(center=btn_rect.center)
-            self.screen.blit(btn_text, text_rect)
-            
-            btn_x += btn_width + 5
-        
-        # Instrucciones (más pequeñas y arriba)
-        y = panel_y + panel_height - 15
-        instructions = self.font_small.render("Tecla C = Limpiar", True, self.GRAY)
-        self.screen.blit(instructions, (panel_x + 10, y))
-    
-    def _apply_filters(self, hosts, scanner=None):
-        """
-        Aplica filtros a una lista de hosts
-        
-        Args:
-            hosts (dict): Diccionario de hosts
-            scanner: Scanner para obtener info de hosts
-        
-        Returns:
-            dict: Hosts filtrados
-        """
-        filtered = {}
-        
-        for ip, info in hosts.items():
-            # Filtro de latencia
-            if self.filter_latency is not None:
-                latency = info.get('latency', 0)
-                
-                if self.filter_latency == 20 and latency >= 20:
-                    continue
-                elif self.filter_latency == 50 and latency >= 50:
-                    continue
-                elif self.filter_latency == 51 and latency < 51:
-                    continue
-            
-            # Filtro de búsqueda
-            if self.search_query:
-                query_lower = self.search_query.lower()
-                
-                # Buscar en IP
-                if query_lower in ip.lower():
-                    filtered[ip] = info
-                    continue
-                
-                # Buscar en hostname
-                if scanner:
-                    host_info = scanner.get_host_info(ip)
-                    hostname = host_info.get('hostname', '')
-                    device_type = host_info.get('device_type', '')
-                    
-                    if query_lower in hostname.lower() or query_lower in device_type.lower():
-                        filtered[ip] = info
-                        continue
-            else:
-                # Sin búsqueda, aplicar solo otros filtros
-                filtered[ip] = info
-        
-        return filtered
-    
     def draw_host_tables(self, active_hosts, offline_hosts, anomalies, scanner=None):
         """
         Dibuja tablas de hosts online y offline con anomalías
@@ -720,10 +587,6 @@ class RadarDisplay:
             anomalies (dict): Anomalías detectadas
             scanner: Scanner para obtener info de hosts
         """
-        # Aplicar filtros
-        active_hosts = self._apply_filters(active_hosts, scanner)
-        offline_hosts = self._apply_filters(offline_hosts, scanner)
-        
         table_x = 10
         table_y = 10
         table_width = 380
@@ -1092,7 +955,6 @@ class RadarDisplay:
         # Dibujar nuevas interfaces
         self.draw_network_health_dashboard(active_hosts, statistics, anomalies)
         self.draw_latency_graph(statistics)
-        self.draw_filters_panel()
         self.draw_statistics_panel(statistics)
         self.draw_host_tables(active_hosts, offline_hosts, anomalies, scanner)
         self.draw_icmp_control_panel(scanner)
@@ -1188,38 +1050,8 @@ class RadarDisplay:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     return False
-                elif event.key == pygame.K_c:
-                    # Limpiar filtros
-                    self.search_query = ""
-                    self.filter_latency = None
-                elif event.key == pygame.K_BACKSPACE:
-                    # Borrar último carácter de búsqueda
-                    if self.search_query:
-                        self.search_query = self.search_query[:-1]
-                elif event.unicode.isprintable():
-                    # Agregar carácter a búsqueda (máximo 20 caracteres)
-                    if len(self.search_query) < 20:
-                        self.search_query += event.unicode
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Click izquierdo
                 mouse_pos = event.pos
-                
-                # Verificar click en botones de filtro de latencia
-                panel_width = 350
-                panel_x = self.width - panel_width - 10
-                panel_y = 590
-                filter_y = panel_y + 73
-                
-                filter_buttons = [
-                    ("Todos", None, 80),
-                    ("<20ms", 20, 145),
-                    ("<50ms", 50, 210),
-                    (">50ms", 51, 275)
-                ]
-                
-                for text, value, btn_x_offset in filter_buttons:
-                    btn_rect = pygame.Rect(panel_x + btn_x_offset, filter_y - 2, 60, 18)
-                    if btn_rect.collidepoint(mouse_pos):
-                        self.filter_latency = value
                 
                 # Verificar click en botones ICMP
                 if hasattr(self, 'icmp_buttons'):
