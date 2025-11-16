@@ -378,7 +378,7 @@ class RadarDisplay:
         # Anomalías
         anomaly_text = self.font_small.render("Anomalias:", True, self.WHITE)
         anomaly_text_width = anomaly_text.get_width()
-        self.screen.blit(anomaly_text, (panel_x + panel_width - anomaly_text_width - 10, y))
+        self.screen.blit(anomaly_text, (panel_x + 15, y))
         y += 20
         
         if high_latency_count > 0:
@@ -486,7 +486,7 @@ class RadarDisplay:
                 color = self.WHITE
             
             text_surface = self.font_small.render(line, True, color)
-            self.screen.blit(text_surface, (panel_x + 10, panel_y + y_offset + i * line_height))
+            self.screen.blit(text_surface, (panel_x + 10, panel_y + y_offset + i * line_height - 10))
     
     def draw_latency_graph(self, statistics):
         """
@@ -578,8 +578,8 @@ class RadarDisplay:
         1) Haz clic en el botón para activar el modo ping.
         2) Haz clic en un host del radar para enviar el ping.
         """
-        panel_width = 320
-        panel_height = 70
+        panel_width = 340
+        panel_height = 90
         panel_x = 10
         panel_y = self.height - panel_height - 10
 
@@ -593,13 +593,16 @@ class RadarDisplay:
 
         # Título
         title = self.font_small.render("PING MANUAL A HOSTS", True, self.BRIGHT_GREEN)
-        self.screen.blit(title, (panel_x + 10, panel_y + 6))
+        title_width = title.get_width()
+        title_x = panel_x + (panel_width - title_width) // 2
+        self.screen.blit(title, (title_x, panel_y + 6))
 
         # Botón de ping
-        button_width = 140
+        btn_text_preview = self.font_small.render("PING (Echo Request)", True, self.WHITE)
+        button_width = btn_text_preview.get_width() + 20  # Ancho basado en el texto + padding
         button_height = 26
-        button_x = panel_x + 10
-        button_y = panel_y + 30
+        button_x = panel_x + (panel_width - button_width) // 2  # Centrado
+        button_y = panel_y + 28
 
         # Guardar rect para detección de clicks
         self.ping_button_rect = pygame.Rect(button_x, button_y, button_width, button_height)
@@ -622,9 +625,12 @@ class RadarDisplay:
         text_rect = btn_text.get_rect(center=(button_x + button_width // 2, button_y + button_height // 2))
         self.screen.blit(btn_text, text_rect)
 
-        # Breve ayuda
+        # Breve ayuda (ahora en la línea de abajo)
         help_text = self.font_small.render("Activa y haz clic en un host del radar", True, self.GRAY)
-        self.screen.blit(help_text, (button_x + button_width + 10, button_y + 6))
+        help_text_width = help_text.get_width()
+        help_text_x = panel_x + (panel_width - help_text_width) // 2  # Centrado
+        help_text_y = button_y + button_height + 8
+        self.screen.blit(help_text, (help_text_x, help_text_y))
 
         # Mostrar resultado reciente del ping (si existe)
         if self.show_icmp_result and time.time() - self.icmp_result_time < 3:

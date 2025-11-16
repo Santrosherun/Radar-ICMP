@@ -681,9 +681,6 @@ class ICMPScanner:
             ip (str): IP destino
             icmp_type (int): Tipo de ICMP
                 8 = Echo Request (ping normal)
-                13 = Timestamp Request
-                15 = Information Request
-                17 = Address Mask Request
             icmp_code (int): Código ICMP (normalmente 0)
             payload_size (int): Tamaño del payload en bytes
             
@@ -700,15 +697,7 @@ class ICMPScanner:
             # Crear paquete ICMP personalizado
             if icmp_type == 8:  # Echo Request
                 packet = IP(dst=ip) / ICMP(type=icmp_type, code=icmp_code) / payload
-            elif icmp_type == 13:  # Timestamp Request
-                packet = IP(dst=ip) / ICMP(type=icmp_type, code=icmp_code)
-            elif icmp_type == 15:  # Information Request
-                packet = IP(dst=ip) / ICMP(type=icmp_type, code=icmp_code)
-            elif icmp_type == 17:  # Address Mask Request
-                packet = IP(dst=ip) / ICMP(type=icmp_type, code=icmp_code)
-            else:
-                packet = IP(dst=ip) / ICMP(type=icmp_type, code=icmp_code) / payload
-            
+        
             # Enviar y medir
             start_time = time.time()
             reply = sr1(packet, timeout=self.timeout, verbose=0)
