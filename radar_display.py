@@ -64,21 +64,16 @@ class RadarDisplay:
         self.show_host_tables = True  # Mostrar tablas de hosts
         self.table_scroll_offset = 0  # Para scroll en tablas largas
         
-        # Panel de control ICMP
-        self.icmp_type_selected = 8  # Por defecto Echo Request
-        self.icmp_type_names = {
-            8: "Echo Request (Ping)",
-            13: "Timestamp Request",
-            15: "Information Request",
-            17: "Address Mask Request"
-        }
-        self.show_icmp_result = False
-        self.icmp_result_text = ""
-        self.icmp_result_time = 0
-        
         # Gráfica de latencia promedio
         self.latency_graph_history = []  # Historial de latencia promedio (últimos 60 valores)
         self.max_graph_points = 60
+
+        # Control simple para enviar pings manuales
+        self.ping_active = False
+        self.ping_button_rect = None
+        self.show_icmp_result = False
+        self.icmp_result_text = ""
+        self.icmp_result_time = 0
         
     def draw_radar_grid(self):
         """
@@ -576,6 +571,68 @@ class RadarDisplay:
             label_current = self.font_small.render(f"{avg_latency:.1f}ms", True, self.YELLOW)
             label_width = label_current.get_width()
             self.screen.blit(label_current, (graph_x + graph_width - label_width - 10, graph_y + 5))
+
+    def draw_ping_control_panel(self):
+        """
+        Dibuja un panel sencillo con un botón para enviar pings (Echo) a los hosts.
+        1) Haz clic en el botón para activar el modo ping.
+        2) Haz clic en un host del radar para enviar el ping.
+        """
+        panel_width = 320
+        panel_height = 70
+        panel_x = 10
+        panel_y = self.height - panel_height - 10
+
+        # Fondo
+        panel_surface = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)
+        panel_surface.fill((10, 10, 30, 220))
+        self.screen.blit(panel_surface, (panel_x, panel_y))
+
+        # Borde
+        pygame.draw.rect(self.screen, self.GREEN, (panel_x, panel_y, panel_width, panel_height), 2)
+
+        # Título
+        title = self.font_small.render("PING MANUAL A HOSTS", True, self.BRIGHT_GREEN)
+        self.screen.blit(title, (panel_x + 10, panel_y + 6))
+
+        # Botón de ping
+        button_width = 140
+        button_height = 26
+        button_x = panel_x + 10
+        button_y = panel_y + 30
+
+        # Guardar rect para detección de clicks
+        self.ping_button_rect = pygame.Rect(button_x, button_y, button_width, button_height)
+
+        # Color según estado (activo/inactivo)
+        if self.ping_active:
+            btn_border_color = self.BRIGHT_GREEN
+            btn_bg_color = (0, 80, 0, 200)
+        else:
+            btn_border_color = self.WHITE
+            btn_bg_color = (30, 30, 30, 200)
+
+        btn_surface = pygame.Surface((button_width, button_height), pygame.SRCALPHA)
+        btn_surface.fill(btn_bg_color)
+        self.screen.blit(btn_surface, (button_x, button_y))
+
+        pygame.draw.rect(self.screen, btn_border_color, self.ping_button_rect, 2)
+
+        btn_text = self.font_small.render("PING (Echo Request)", True, btn_border_color)
+        text_rect = btn_text.get_rect(center=(button_x + button_width // 2, button_y + button_height // 2))
+        self.screen.blit(btn_text, text_rect)
+
+        # Breve ayuda
+        help_text = self.font_small.render("Activa y haz clic en un host del radar", True, self.GRAY)
+        self.screen.blit(help_text, (button_x + button_width + 10, button_y + 6))
+
+        # Mostrar resultado reciente del ping (si existe)
+        if self.show_icmp_result and time.time() - self.icmp_result_time < 3:
+            result_text = self.font_small.render(self.icmp_result_text, True, self.YELLOW)
+            self.screen.blit(result_text, (panel_x + 10, panel_y - 18))
+        elif self.show_icmp_result:
+            # Expiró el tiempo de mostrar el resultado
+            self.show_icmp_result = False
     
     def draw_host_tables(self, active_hosts, offline_hosts, anomalies, scanner=None):
         """
@@ -957,82 +1014,11 @@ class RadarDisplay:
         self.draw_latency_graph(statistics)
         self.draw_statistics_panel(statistics)
         self.draw_host_tables(active_hosts, offline_hosts, anomalies, scanner)
-        self.draw_icmp_control_panel(scanner)
+        self.draw_ping_control_panel()
         
         # Actualizar pantalla
         pygame.display.flip()
         # No usar clock.tick aquí, se maneja en el bucle principal
-    
-    def draw_icmp_control_panel(self, scanner=None):
-        """
-        Dibuja panel de control para enviar paquetes ICMP personalizados
-        """
-        panel_width = 800
-        panel_height = 100
-        panel_x = 10  # Alineado a la izquierda
-        panel_y = self.height - panel_height - 10
-        
-        # Fondo
-        panel_surface = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)
-        panel_surface.fill((10, 10, 30, 220))
-        self.screen.blit(panel_surface, (panel_x, panel_y))
-        
-        # Borde
-        pygame.draw.rect(self.screen, self.GREEN, (panel_x, panel_y, panel_width, panel_height), 2)
-        
-        # Título
-        title = self.font_medium.render("PAQUETES ICMP PERSONALIZADOS", True, self.BRIGHT_GREEN)
-        self.screen.blit(title, (panel_x + 10, panel_y + 8))
-        
-        # Botones de tipo ICMP
-        button_y = panel_y + 40
-        button_width = 180
-        button_height = 30
-        button_spacing = 10
-        
-        for i, (icmp_type, name) in enumerate(self.icmp_type_names.items()):
-            button_x = panel_x + 10 + i * (button_width + button_spacing)
-            
-            # Color si está seleccionado
-            if icmp_type == self.icmp_type_selected:
-                color = self.BRIGHT_GREEN
-                bg_color = (0, 80, 0, 180)
-            else:
-                color = self.WHITE
-                bg_color = (30, 30, 30, 180)
-            
-            # Fondo del botón
-            btn_surface = pygame.Surface((button_width, button_height), pygame.SRCALPHA)
-            btn_surface.fill(bg_color)
-            self.screen.blit(btn_surface, (button_x, button_y))
-            
-            # Borde
-            pygame.draw.rect(self.screen, color, (button_x, button_y, button_width, button_height), 2)
-            
-            # Texto
-            text = self.font_small.render(name.split('(')[0].strip(), True, color)
-            text_rect = text.get_rect(center=(button_x + button_width // 2, button_y + button_height // 2))
-            self.screen.blit(text, text_rect)
-            
-            # Guardar rect para detección de click
-            if not hasattr(self, 'icmp_buttons'):
-                self.icmp_buttons = {}
-            self.icmp_buttons[icmp_type] = pygame.Rect(button_x, button_y, button_width, button_height)
-        
-        # Instrucciones
-        instructions = self.font_small.render("Haz clic en un host del radar para enviar el paquete seleccionado", True, self.GRAY)
-        self.screen.blit(instructions, (panel_x + 10, panel_y + 75))
-        
-        # Mostrar resultado si hay
-        if self.show_icmp_result and time.time() - self.icmp_result_time < 3:
-            result_surface = pygame.Surface((panel_width - 20, 25), pygame.SRCALPHA)
-            result_surface.fill((0, 0, 0, 200))
-            self.screen.blit(result_surface, (panel_x + 10, panel_y - 30))
-            
-            result_text = self.font_small.render(self.icmp_result_text, True, self.YELLOW)
-            self.screen.blit(result_text, (panel_x + 15, panel_y - 27))
-        else:
-            self.show_icmp_result = False
     
     def handle_events(self, scanner=None):
         """
@@ -1052,25 +1038,21 @@ class RadarDisplay:
                     return False
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Click izquierdo
                 mouse_pos = event.pos
-                
-                # Verificar click en botones ICMP
-                if hasattr(self, 'icmp_buttons'):
-                    for icmp_type, rect in self.icmp_buttons.items():
-                        if rect.collidepoint(mouse_pos):
-                            self.icmp_type_selected = icmp_type
-                
-                # Verificar click en host para enviar paquete
-                if scanner:
+
+                # Click en botón de ping: activar/desactivar modo ping
+                if self.ping_button_rect and self.ping_button_rect.collidepoint(mouse_pos):
+                    self.ping_active = not self.ping_active
+                # Click sobre un host mientras el modo ping está activo: enviar Echo Request
+                elif scanner and self.ping_active:
                     clicked_ip = self.check_hover(mouse_pos)
                     if clicked_ip and clicked_ip in scanner.get_active_hosts():
-                        # Enviar paquete personalizado
-                        reply, latency = scanner.send_custom_icmp(clicked_ip, self.icmp_type_selected)
-                        
+                        reply, latency = scanner.send_custom_icmp(clicked_ip, 8)
+
                         if reply:
-                            self.icmp_result_text = f"ICMP Tipo {self.icmp_type_selected} a {clicked_ip}: OK ({latency:.1f}ms)"
+                            self.icmp_result_text = f"Ping a {clicked_ip}: OK ({latency:.1f}ms)"
                         else:
-                            self.icmp_result_text = f"ICMP Tipo {self.icmp_type_selected} a {clicked_ip}: Sin respuesta"
-                        
+                            self.icmp_result_text = f"Ping a {clicked_ip}: Sin respuesta"
+
                         self.show_icmp_result = True
                         self.icmp_result_time = time.time()
         

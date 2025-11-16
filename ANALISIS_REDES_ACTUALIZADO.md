@@ -89,9 +89,10 @@ Este documento presenta un análisis técnico detallado y actualizado de la impl
 └─────────────────────────────────────────┘
 ```
 
-### 2.3 Resolución DNS y Hostnames
+### 2.3 Hostnames Sintéticos y Detección por MAC
 
-El sistema utiliza **DNS inverso** (`socket.gethostbyaddr()`) para resolver direcciones IP a nombres de host, lo cual permite identificar dispositivos por nombre en lugar de solo por IP.
+El sistema genera hostnames simples basados en la IP (por ejemplo, `Host-23` para `192.168.1.23`) y **no depende de DNS**.
+Además, utiliza la **dirección MAC aprendida vía ARP** para inferir el tipo de dispositivo a partir del OUI (primeros bytes de la MAC).
 
 ---
 
@@ -139,9 +140,8 @@ class ICMPScanner:
 │  Escaneo de Red (ICMP)  │
 └────────┬────────────────┘
          │
-         ├─> Resolver hostname (DNS)
-         ├─> Detectar tipo de dispositivo
          ├─> Aprender MAC (ARP)
+         ├─> Inferir tipo de dispositivo por MAC/IP
          └─> Actualizar estadísticas
          │
          ▼
@@ -168,10 +168,8 @@ class ICMPScanner:
 ### 4.1 Configuración Inicial y Nuevas Dependencias
 
 ```python
-import socket  # Nueva importación para resolución DNS
+# (Se eliminó la dependencia de socket/DNS para simplificar)
 ```
-
-#### Nuevas Estructuras de Datos:
 
 ```python
 # Estadísticas globales
@@ -926,15 +924,15 @@ for ip, info in self.offline_hosts.items():
 El código utiliza múltiples locks para garantizar acceso seguro a estructuras compartidas:
 
 ```python
-self.hosts_lock = RLock()      # Para active_hosts, offline_hosts, latency_history
-self.macs_lock = RLock()       # Para learned_macs
-self.known_hosts_lock = RLock() # Para known_hosts
-self.stats_lock = RLock()      # Para stats
+self.hosts_lock = Lock()      # Para active_hosts, offline_hosts, latency_history
+self.macs_lock = Lock()       # Para learned_macs
+self.known_hosts_lock = Lock() # Para known_hosts
+self.stats_lock = Lock()      # Para stats
 ```
 
-**RLock (Reentrant Lock):**
-- Permite que el mismo thread adquiera el lock múltiples veces
-- Útil cuando una función protegida llama a otra función protegida
+**Lock (Thread Lock):**
+- Garantiza acceso exclusivo a recursos compartidos entre threads
+- Previene condiciones de carrera (race conditions)
 
 **Patrón de uso:**
 ```python

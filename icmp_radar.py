@@ -1,27 +1,4 @@
 #!/usr/bin/env python3
-"""
-ICMP Radar - Visualización de Red en Tiempo Real
-
-Este programa utiliza Scapy para enviar paquetes ICMP a la red local
-y visualiza los hosts activos en una interfaz de radar similar a un sonar militar.
-
-Características:
-- Descubrimiento automático de la red local
-- Escaneo continuo con ICMP ping
-- Visualización en tiempo real tipo radar
-- Mapeo de latencia a distancia radial
-- Efectos visuales animados
-
-Requisitos:
-- Python 3.7+
-- Scapy (pip install scapy)
-- Pygame (pip install pygame)
-- Permisos de administrador (para envío de paquetes ICMP)
-
-Autor: Asistente AI
-Fecha: 2024
-"""
-
 import sys
 import time
 import threading
