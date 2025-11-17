@@ -93,7 +93,6 @@ class ICMPScanner:
                 # Lista expandida con fabricantes comunes
                 oui_vendor_type_map = {
                     # Routers / APs domésticos
-                    "14:82:5B": ("TP-Link", "Router/AP"),
                     "F4:F2:6D": ("TP-Link", "Router/AP"),
                     "C8:3A:35": ("TP-Link", "Router/AP"),
                     "50:C7:BF": ("TP-Link", "Router/AP"),
