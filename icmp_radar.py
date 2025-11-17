@@ -2,7 +2,6 @@
 import sys
 import time
 import threading
-import argparse
 import pygame
 import warnings
 import logging
@@ -25,7 +24,7 @@ def handle_thread_exception(args):
 threading.excepthook = handle_thread_exception
 
 class ICMPRadarApp:
-    def __init__(self, network_range=None, scan_interval=3, window_size=(1400, 800)):
+    def __init__(self, network_range=None, scan_interval=30, window_size=(1400, 800)):
         """
         Inicializa la aplicación ICMP Radar
         
@@ -105,10 +104,6 @@ class ICMPRadarApp:
         print("[START] Iniciando ICMP Radar...")
         print("[INFO] Presiona ESC o cierra la ventana para salir")
         
-        # Verificar permisos
-        if not self._check_permissions():
-            return
-        
         self.running = True
         
         try:
@@ -157,138 +152,16 @@ class ICMPRadarApp:
             print(f"[ERROR] Error inesperado: {e}")
         
         finally:
-            self.cleanup()
-    
-    def _check_permissions(self):
-        """
-        Verifica si tenemos permisos para enviar paquetes ICMP
-        
-        Returns:
-            bool: True si tenemos permisos, False en caso contrario
-        """
-        try:
-            # Intentar un ping de prueba
-            test_result = self.scanner.ping_host("127.0.0.1")
-            if test_result[1] is not None:
-                print("[OK] Permisos ICMP verificados")
-                return True
-            else:
-                print("[ERROR] No se pudieron enviar paquetes ICMP")
-                print("[TIP] Ejecuta como administrador/root para usar ICMP")
-                return False
-        
-        except Exception as e:
-            print(f"[ERROR] Error verificando permisos: {e}")
-            print("[TIP] Asegurate de ejecutar como administrador/root")
-            return False
-    
-    def cleanup(self):
-        """
-        Limpia recursos y termina la aplicación
-        """
-        print("[CLEANUP] Limpiando recursos...")
-        
-        self.running = False
-        
-        # Detener escaneo
-        if hasattr(self, 'scanner'):
+            # Cerrar pygame y detener scanner
+            pygame.quit()
             self.scanner.stop_scan()
-        
-        # Limpiar Pygame
-        if hasattr(self, 'radar'):
-            self.radar.cleanup()
-        
-        print("[OK] Aplicación terminada correctamente")
 
 def main():
     """
-    Función principal con argumentos de línea de comandos
+    Función principal
     """
-    parser = argparse.ArgumentParser(
-        description="ICMP Radar - Visualización de Red en Tiempo Real",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Ejemplos de uso:
-  python icmp_radar.py                          # Auto-detectar red local
-  python icmp_radar.py -n 192.168.1.0/24       # Escanear red específica
-  python icmp_radar.py -i 5 -s 1000x800        # Intervalo 5s, ventana 1000x800
-  
-Nota: Requiere permisos de administrador para enviar paquetes ICMP
-        """
-    )
-    
-    parser.add_argument(
-        "-n", "--network",
-        help="Rango de red a escanear (ej: 192.168.1.0/24)",
-        default=None
-    )
-    
-    parser.add_argument(
-        "-i", "--interval",
-        type=float,
-        help="Intervalo entre escaneos en segundos (default: 3.0)",
-        default=3.0
-    )
-    
-    parser.add_argument(
-        "-s", "--size",
-        help="Tamaño de ventana WIDTHxHEIGHT (default: 1400x800)",
-        default="1400x800"
-    )
-    
-    parser.add_argument(
-        "-v", "--verbose",
-        action="store_true",
-        help="Mostrar información detallada"
-    )
-    
-    parser.add_argument(
-        "-p", "--persist",
-        type=int,
-        help="Tiempo de persistencia de hosts en segundos (default: 30)",
-        default=30
-    )
-    
-    args = parser.parse_args()
-    
-    # Parsear tamaño de ventana
-    try:
-        width, height = map(int, args.size.split('x'))
-        window_size = (width, height)
-    except ValueError:
-        print("[ERROR] Formato de tamaño invalido. Usa WIDTHxHEIGHT (ej: 800x600)")
-        return 1
-    
-    # Mostrar información si es verbose
-    if args.verbose:
-        print("[CONFIG] Configuracion:")
-        print(f"   Red: {args.network or 'Auto-detectar'}")
-        print(f"   Intervalo: {args.interval}s")
-        print(f"   Persistencia: {args.persist}s")
-        print(f"   Ventana: {window_size[0]}x{window_size[1]}")
-        print()
-    
-    # Crear y ejecutar aplicación
-    try:
-        app = ICMPRadarApp(
-            network_range=args.network,
-            scan_interval=args.interval,
-            window_size=window_size
-        )
-        
-        # Configurar tiempo de persistencia
-        app.scanner.host_persistence = args.persist
-        
-        app.run()
-        return 0
-    
-    except KeyboardInterrupt:
-        print("\n[STOP] Aplicacion interrumpida por el usuario")
-        return 0
-    
-    except Exception as e:
-        print(f"[FATAL] Error fatal: {e}")
-        return 1
+    app = ICMPRadarApp()
+    app.run()
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

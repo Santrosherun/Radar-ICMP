@@ -73,7 +73,7 @@ class ICMPScanner:
         Returns:
             tuple: (hostname, device_type)
         """
-        # Nombre básico generado por IP (sin DNS)
+        # Nombre básico generado por IP
         last_octet = ip.split('.')[-1]
         hostname = f"Host-{last_octet}"
         device_type = "Device"
@@ -81,7 +81,7 @@ class ICMPScanner:
         # Gateway típico por IP
         if ip.endswith('.1') or ip.endswith('.254'):
             hostname = "Gateway"
-            device_type = "🌐 Router"
+            device_type = "Router/Gateway"
         else:
             # Intentar inferir tipo por MAC (OUI)
             mac = self.learned_macs.get(ip)
@@ -132,6 +132,18 @@ class ICMPScanner:
                     "60:03:08": ("Samsung", "Phone/Tablet"),
                     "5C:49:79": ("Samsung", "Phone/Tablet"),
                     "00:16:6C": ("Samsung", "Phone/Tablet"),
+                    "AC:5A:14": ("Samsung", "Phone/Tablet"),
+                    "34:23:87": ("Samsung", "Phone/Tablet"),
+                    "50:CC:F8": ("Samsung", "Phone/Tablet"),
+                    "78:02:F8": ("Samsung", "Phone/Tablet"),
+                    "F0:25:B7": ("Samsung", "Phone/Tablet"),
+                    "2C:44:FD": ("Samsung", "Phone/Tablet"),
+                    "B8:63:4D": ("Samsung", "Phone/Tablet"),
+                    "8C:3A:E3": ("Samsung", "Phone/Tablet"),
+                    "C4:50:06": ("Samsung", "Phone/Tablet"),
+                    "10:77:B1": ("Samsung", "Phone/Tablet"),
+                    "A0:07:98": ("Samsung", "Phone/Tablet"),
+                    "DC:66:72": ("Samsung", "Phone/Tablet"),
 
                     # Dispositivos Apple
                     "C0:95:6D": ("Apple", "iPhone/iPad/Mac"),
@@ -143,31 +155,128 @@ class ICMPScanner:
                     "00:1E:C2": ("Apple", "iPhone/iPad/Mac"),
                     "00:23:DF": ("Apple", "iPhone/iPad/Mac"),
                     "00:25:00": ("Apple", "iPhone/iPad/Mac"),
+                    "7C:6D:62": ("Apple", "iPhone/iPad/Mac"),
+                    "BC:52:B7": ("Apple", "iPhone/iPad/Mac"),
+                    "10:93:E9": ("Apple", "iPhone/iPad/Mac"),
+                    "04:0C:CE": ("Apple", "iPhone/iPad/Mac"),
+                    "4C:8D:79": ("Apple", "iPhone/iPad/Mac"),
+                    "40:33:1A": ("Apple", "iPhone/iPad/Mac"),
+                    "DC:A9:04": ("Apple", "iPhone/iPad/Mac"),
+                    "5C:59:48": ("Apple", "iPhone/iPad/Mac"),
+                    "70:48:0F": ("Apple", "iPhone/iPad/Mac"),
+                    "84:FC:FE": ("Apple", "iPhone/iPad/Mac"),
+                    "3C:07:54": ("Apple", "iPhone/iPad/Mac"),
+                    "A4:5E:60": ("Apple", "iPhone/iPad/Mac"),
+                    "28:CF:DA": ("Apple", "iPhone/iPad/Mac"),
 
-                    # Xiaomi / Redmi
+                    # Xiaomi / Redmi / Poco
                     "18:83:BF": ("Xiaomi", "Phone/IoT"),
                     "64:09:80": ("Xiaomi", "Phone/IoT"),
                     "40:31:3C": ("Xiaomi", "Phone/IoT"),
                     "28:E3:1F": ("Xiaomi", "Phone/IoT"),
                     "F4:8E:38": ("Xiaomi", "Phone/IoT"),
+                    "B0:0C:D1": ("Xiaomi", "Phone/IoT"),
+                    "54:13:79": ("Xiaomi", "Phone/IoT"),
+                    "DC:D2:FC": ("Xiaomi", "Phone/IoT"),
+                    "88:44:F6": ("Xiaomi", "Phone/IoT"),
+                    "7C:1E:52": ("Xiaomi", "Phone/IoT"),
+                    "8C:BE:BE": ("Xiaomi", "Phone/IoT"),
+                    "A0:C5:89": ("Xiaomi", "Phone/IoT"),
+                    "D4:97:0B": ("Xiaomi", "Phone/IoT"),
+                    "74:23:44": ("Xiaomi", "Phone/IoT"),
 
-                    # Huawei móviles
+                    # Huawei móviles / Honor
                     "00:9A:CD": ("Huawei", "Phone/Tablet"),
                     "00:E0:FC": ("Huawei", "Phone/Tablet"),
                     "00:46:4B": ("Huawei", "Phone/Tablet"),
                     "AC:E2:D3": ("Huawei", "Phone/Tablet"),
+                    "08:62:66": ("Huawei", "Phone/Tablet"),
+                    "14:7D:DA": ("Huawei", "Phone/Tablet"),
+                    "34:6B:D3": ("Huawei", "Phone/Tablet"),
+                    "50:01:D9": ("Huawei", "Phone/Tablet"),
+                    "7C:1D:D9": ("Huawei", "Phone/Tablet"),
+                    "A4:50:46": ("Huawei", "Phone/Tablet"),
+                    "C4:64:13": ("Huawei", "Phone/Tablet"),
+                    "DC:D2:FC": ("Huawei", "Phone/Tablet"),
+                    "EC:23:3D": ("Huawei", "Phone/Tablet"),
+                    "FC:48:EF": ("Huawei", "Phone/Tablet"),
+                    "30:72:6C": ("Honor", "Phone/Tablet"),
+                    "D4:62:EA": ("Honor", "Phone/Tablet"),
 
                     # OnePlus
                     "00:50:C2": ("OnePlus", "Phone"),
                     "F8:A4:5F": ("OnePlus", "Phone"),
+                    "98:D6:BB": ("OnePlus", "Phone"),
+                    "AC:1F:74": ("OnePlus", "Phone"),
+                    "E4:B2:FB": ("OnePlus", "Phone"),
+                    "CC:F9:E8": ("OnePlus", "Phone"),
+                    "D8:16:C1": ("OnePlus", "Phone"),
 
-                    # Motorola
+                    # Motorola / Lenovo Mobile
                     "00:1A:6B": ("Motorola", "Phone"),
                     "00:1B:77": ("Motorola", "Phone"),
+                    "5C:0A:5B": ("Motorola", "Phone"),
+                    "2C:44:01": ("Motorola", "Phone"),
+                    "34:E6:AD": ("Motorola", "Phone"),
+                    "AC:90:85": ("Motorola", "Phone"),
+                    "60:F8:1D": ("Motorola", "Phone"),
+                    "98:3B:8F": ("Motorola", "Phone"),
+                    "F4:F2:6D": ("Motorola", "Phone"),
+                    "C8:3A:35": ("Motorola", "Phone"),
 
                     # Google / Pixel
-                    "00:1A:11": ("Google", "Phone/Tablet"),
                     "F8:8F:CA": ("Google", "Phone/Tablet"),
+                    "38:87:D5": ("Google", "Phone/Tablet"),
+                    "C8:DB:26": ("Google", "Phone/Tablet"),
+                    "50:46:5D": ("Google", "Phone/Tablet"),
+                    "F4:F5:E8": ("Google", "Phone/Tablet"),
+                    "00:1A:11": ("Google", "Pixel Phone"),
+
+                    # Oppo / Realme / OnePlus
+                    "B0:70:2D": ("Oppo", "Phone"),
+                    "C0:EE:FB": ("Oppo", "Phone"),
+                    "28:6E:D4": ("Oppo", "Phone"),
+                    "D8:63:75": ("Oppo", "Phone"),
+                    "F4:B5:20": ("Oppo", "Phone"),
+                    "A4:50:46": ("Oppo", "Phone"),
+                    "50:65:F3": ("Realme", "Phone"),
+                    "E8:9A:8F": ("Realme", "Phone"),
+                    "A0:E6:F8": ("Realme", "Phone"),
+
+                    # Vivo
+                    "20:DF:B9": ("Vivo", "Phone"),
+                    "60:2A:D0": ("Vivo", "Phone"),
+                    "C4:61:8B": ("Vivo", "Phone"),
+                    "E4:5E:1B": ("Vivo", "Phone"),
+                    "FC:4D:D4": ("Vivo", "Phone"),
+
+                    # Nokia
+                    "00:1D:E9": ("Nokia", "Phone"),
+                    "00:1E:C9": ("Nokia", "Phone"),
+                    "00:1F:01": ("Nokia", "Phone"),
+                    "7C:61:93": ("Nokia", "Phone"),
+                    "A0:2B:B8": ("Nokia", "Phone"),
+                    "00:02:EE": ("Nokia", "Phone"),
+                    "00:12:62": ("Nokia", "Phone"),
+                    "00:15:E0": ("Nokia", "Phone"),
+
+                    # LG móviles
+                    "00:26:E2": ("LG", "Phone"),
+                    "34:E1:2D": ("LG", "Phone"),
+                    "50:2E:5C": ("LG", "Phone"),
+                    "78:E3:B5": ("LG", "Phone"),
+                    "C8:21:58": ("LG", "Phone"),
+                    "F8:63:3F": ("LG", "Phone"),
+                    "B8:63:4D": ("LG", "Phone"),
+
+                    # Sony móviles
+                    "00:16:FE": ("Sony", "Phone"),
+                    "2C:5A:0F": ("Sony", "Phone"),
+                    "4C:21:D0": ("Sony", "Phone"),
+                    "80:5E:C0": ("Sony", "Phone"),
+                    "F8:5B:3C": ("Sony", "Phone"),
+                    "D0:51:62": ("Sony", "Phone"),
+                    "90:C6:82": ("Sony", "Phone"),
 
                     # Impresoras
                     "3C:D9:2B": ("HP", "Printer"),
@@ -400,7 +509,7 @@ class ICMPScanner:
             
             # Crear threads para ping paralelo usando generador propio
             for ip in self._generate_host_ips(self.network_range):
-                if len(threads) >= 20:  # Reducir threads concurrentes para mejor rendimiento
+                if len(threads) >= 60:  # Reducir threads concurrentes para mejor rendimiento
                     for t in threads:
                         t.join()
                     threads.clear()
