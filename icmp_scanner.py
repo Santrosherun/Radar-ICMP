@@ -735,7 +735,12 @@ class ICMPScanner:
         else:
             stats_copy['packet_loss_rate'] = 0.0
         
-        if stats_copy['packets_received'] > 0:
+        # Calcular latencia promedio de hosts activos actuales (más preciso)
+        if len(self.active_hosts) > 0:
+            latencies = [info.get('latency', 0) for info in self.active_hosts.values()]
+            stats_copy['avg_latency'] = sum(latencies) / len(latencies)
+        elif stats_copy['packets_received'] > 0:
+            # Si no hay hosts activos, usar promedio histórico como fallback
             stats_copy['avg_latency'] = stats_copy['total_latency'] / stats_copy['packets_received']
         else:
             stats_copy['avg_latency'] = 0.0
@@ -866,10 +871,14 @@ class ICMPScanner:
                 })
             
             # Detectar jitter alto (variación de latencia)
+            # Usar solo valores recientes (últimos 10) para reflejar jitter actual, no histórico
             if ip in self.latency_history and len(self.latency_history[ip]) >= 5:
-                history = self.latency_history[ip]
-                avg_lat = sum(history) / len(history)
-                variance = sum((x - avg_lat) ** 2 for x in history) / len(history)
+                full_history = self.latency_history[ip]
+                # Usar solo los últimos 10 valores para calcular jitter (más relevante al estado actual)
+                recent_history = full_history[-10:] if len(full_history) >= 10 else full_history
+                
+                avg_lat = sum(recent_history) / len(recent_history)
+                variance = sum((x - avg_lat) ** 2 for x in recent_history) / len(recent_history)
                 std_dev = variance ** 0.5
                 
                 # Jitter alto: desviación estándar > 30ms

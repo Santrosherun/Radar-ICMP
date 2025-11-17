@@ -207,8 +207,8 @@ class RadarDisplay:
                 pulse_intensity = 1.0 - (pulse_age / 2.0)
                 pulse_size = int(6 + 8 * pulse_intensity)  # Reducido
         
-        # Color basado en latencia
-        if latency_ms < 10:
+        # Color basado en latencia (consistente con estadísticas: <20ms verde, 20-50ms amarillo, >50ms rojo)
+        if latency_ms < 20:
             color = self.GREEN
         elif latency_ms < 50:
             color = self.YELLOW
@@ -258,8 +258,8 @@ class RadarDisplay:
         # Tamaño simplificado (sin pulso para mejor rendimiento)
         pulse_size = 5
         
-        # Color basado en latencia
-        if latency_ms < 10:
+        # Color basado en latencia (consistente con estadísticas: <20ms verde, 20-50ms amarillo, >50ms rojo)
+        if latency_ms < 20:
             color = self.GREEN
         elif latency_ms < 50:
             color = self.YELLOW
@@ -695,8 +695,8 @@ class RadarDisplay:
         for i, (ip, info) in enumerate(list(active_hosts.items())[:max_visible]):
             latency = info.get('latency', 0)
             
-            # Color basado en latencia
-            if latency < 10:
+            # Color basado en latencia (consistente: <20ms verde, 20-50ms amarillo, >50ms rojo)
+            if latency < 20:
                 lat_color = self.GREEN
             elif latency < 50:
                 lat_color = self.YELLOW
@@ -830,10 +830,13 @@ class RadarDisplay:
             device_name, device_type = self.get_device_info(ip, mac_address)
         
         # Calcular jitter si hay suficiente historial
+        # Usar solo valores recientes (últimos 10) para reflejar jitter actual
         jitter_text = ""
         if len(latency_history) >= 5:
-            avg_lat = sum(latency_history) / len(latency_history)
-            variance = sum((x - avg_lat) ** 2 for x in latency_history) / len(latency_history)
+            # Usar solo los últimos 10 valores para calcular jitter (más relevante al estado actual)
+            recent_history = latency_history[-10:] if len(latency_history) >= 10 else latency_history
+            avg_lat = sum(recent_history) / len(recent_history)
+            variance = sum((x - avg_lat) ** 2 for x in recent_history) / len(recent_history)
             jitter = variance ** 0.5
             jitter_text = f"Jitter: {jitter:.1f}ms"
         
@@ -941,9 +944,9 @@ class RadarDisplay:
         # Dibujar líneas entre puntos
         if len(points) > 1:
             for i in range(len(points) - 1):
-                # Color basado en latencia promedio del segmento
+                # Color basado en latencia promedio del segmento (consistente: <20ms verde, 20-50ms amarillo, >50ms rojo)
                 avg_lat = (latency_history[i] + latency_history[i + 1]) / 2
-                if avg_lat < 10:
+                if avg_lat < 20:
                     line_color = self.GREEN
                 elif avg_lat < 50:
                     line_color = self.YELLOW
@@ -955,7 +958,8 @@ class RadarDisplay:
         # Dibujar puntos
         for i, (px, py) in enumerate(points):
             latency = latency_history[i]
-            if latency < 10:
+            # Color basado en latencia (consistente: <20ms verde, 20-50ms amarillo, >50ms rojo)
+            if latency < 20:
                 point_color = self.GREEN
             elif latency < 50:
                 point_color = self.YELLOW
