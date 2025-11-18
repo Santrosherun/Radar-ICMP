@@ -75,6 +75,12 @@ class RadarDisplay:
         self.icmp_result_text = ""
         self.icmp_result_time = 0
         
+        # Campo de texto para ingresar IP manualmente
+        self.ip_input_text = ""
+        self.ip_input_active = False
+        self.ip_input_rect = None
+        self.ping_ip_button_rect = None
+        
     def draw_radar_grid(self):
         """
         Dibuja la cuadrícula circular del radar
@@ -577,9 +583,10 @@ class RadarDisplay:
         Dibuja un panel sencillo con un botón para enviar pings (Echo) a los hosts.
         1) Haz clic en el botón para activar el modo ping.
         2) Haz clic en un host del radar para enviar el ping.
+        3) Ingresa una IP manualmente y haz clic en "Ping IP" para probar.
         """
         panel_width = 340
-        panel_height = 90
+        panel_height = 140  # Aumentado para campo de texto
         panel_x = 10
         panel_y = self.height - panel_height - 10
 
@@ -631,6 +638,70 @@ class RadarDisplay:
         help_text_x = panel_x + (panel_width - help_text_width) // 2  # Centrado
         help_text_y = button_y + button_height + 8
         self.screen.blit(help_text, (help_text_x, help_text_y))
+        
+        # ═══════════════════════════════════════════════════════
+        # CAMPO DE TEXTO PARA IP MANUAL
+        # ═══════════════════════════════════════════════════════
+        
+        # Campo de texto para IP
+        input_y = button_y + button_height + 30
+        input_height = 24
+        input_width = 200
+        input_x = panel_x + 10
+        
+        # Guardar rect para detección de clicks
+        self.ip_input_rect = pygame.Rect(input_x, input_y, input_width, input_height)
+        
+        # Fondo del campo de texto
+        input_bg_color = (40, 40, 40) if not self.ip_input_active else (60, 60, 60)
+        pygame.draw.rect(self.screen, input_bg_color, self.ip_input_rect)
+        pygame.draw.rect(self.screen, self.WHITE if self.ip_input_active else self.GRAY, 
+                        self.ip_input_rect, 2)
+        
+        # Texto del campo
+        label_text = self.font_small.render("IP:", True, self.WHITE)
+        self.screen.blit(label_text, (input_x - 25, input_y + 2))
+        
+        # Texto ingresado
+        if self.ip_input_text:
+            display_text = self.ip_input_text
+            text_color = self.WHITE
+        elif self.ip_input_active:
+            display_text = ""
+            text_color = self.WHITE
+        else:
+            display_text = "192.168.1.100"
+            text_color = self.GRAY
+        
+        # Mostrar cursor si está activo
+        if self.ip_input_active:
+            display_text += "|"
+        
+        input_surface = self.font_small.render(display_text, True, text_color)
+        self.screen.blit(input_surface, (input_x + 5, input_y + 2))
+        
+        # Botón "Ping IP"
+        ping_ip_btn_width = 100
+        ping_ip_btn_height = input_height
+        ping_ip_btn_x = input_x + input_width + 10
+        ping_ip_btn_y = input_y
+        
+        self.ping_ip_button_rect = pygame.Rect(ping_ip_btn_x, ping_ip_btn_y, 
+                                               ping_ip_btn_width, ping_ip_btn_height)
+        
+        # Color del botón
+        ping_ip_bg = (0, 100, 0, 200)
+        ping_ip_border = self.GREEN
+        
+        ping_ip_surface = pygame.Surface((ping_ip_btn_width, ping_ip_btn_height), pygame.SRCALPHA)
+        ping_ip_surface.fill(ping_ip_bg)
+        self.screen.blit(ping_ip_surface, (ping_ip_btn_x, ping_ip_btn_y))
+        pygame.draw.rect(self.screen, ping_ip_border, self.ping_ip_button_rect, 2)
+        
+        ping_ip_text = self.font_small.render("Ping IP", True, self.GREEN)
+        text_rect = ping_ip_text.get_rect(center=(ping_ip_btn_x + ping_ip_btn_width // 2, 
+                                                   ping_ip_btn_y + ping_ip_btn_height // 2))
+        self.screen.blit(ping_ip_text, text_rect)
 
         # Mostrar resultado reciente del ping (si existe)
         if self.show_icmp_result and time.time() - self.icmp_result_time < 3:
@@ -1030,6 +1101,53 @@ class RadarDisplay:
         pygame.display.flip()
         # No usar clock.tick aquí, se maneja en el bucle principal
     
+    def _is_valid_ip(self, ip_str):
+        """
+        Valida si una cadena es una IP válida
+        
+        Args:
+            ip_str (str): Cadena a validar
+            
+        Returns:
+            bool: True si es una IP válida
+        """
+        try:
+            parts = ip_str.split('.')
+            if len(parts) != 4:
+                return False
+            for part in parts:
+                num = int(part)
+                if num < 0 or num > 255:
+                    return False
+            return True
+        except:
+            return False
+    
+    def _send_ping_to_ip(self, scanner, ip):
+        """
+        Envía ping a una IP y muestra el resultado
+        
+        Args:
+            scanner (ICMPScanner): Scanner para enviar ping
+            ip (str): Dirección IP a hacer ping
+        """
+        try:
+            reply, latency = scanner.send_custom_icmp(ip, 8)
+            
+            if reply:
+                # Si responde, está en la red (o al menos accesible)
+                self.icmp_result_text = f"{ip}: OK ({latency:.1f}ms) - En la red"
+            else:
+                # No responde: puede estar fuera de la red o no disponible
+                self.icmp_result_text = f"{ip}: Sin respuesta - No en la red o no disponible"
+            
+            self.show_icmp_result = True
+            self.icmp_result_time = time.time()
+        except Exception as e:
+            self.icmp_result_text = f"Error: {str(e)}"
+            self.show_icmp_result = True
+            self.icmp_result_time = time.time()
+    
     def handle_events(self, scanner=None):
         """
         Maneja eventos de Pygame
@@ -1046,11 +1164,38 @@ class RadarDisplay:
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     return False
+                # Manejar entrada de texto para campo IP
+                elif self.ip_input_active:
+                    if event.key == pygame.K_BACKSPACE:
+                        self.ip_input_text = self.ip_input_text[:-1]
+                    elif event.key == pygame.K_RETURN or event.key == pygame.K_KP_ENTER:
+                        # Enter también envía ping
+                        if scanner and self.ip_input_text and self._is_valid_ip(self.ip_input_text):
+                            self._send_ping_to_ip(scanner, self.ip_input_text)
+                            self.ip_input_active = False
+                    elif event.unicode.isprintable() and len(self.ip_input_text) < 15:
+                        # Permitir solo caracteres imprimibles y limitar longitud
+                        if event.unicode.isdigit() or event.unicode == '.':
+                            self.ip_input_text += event.unicode
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Click izquierdo
                 mouse_pos = event.pos
 
+                # Click en campo de texto IP: activar/desactivar
+                if self.ip_input_rect and self.ip_input_rect.collidepoint(mouse_pos):
+                    self.ip_input_active = True
+                # Click en botón "Ping IP"
+                elif self.ping_ip_button_rect and self.ping_ip_button_rect.collidepoint(mouse_pos):
+                    if scanner and self.ip_input_text and self._is_valid_ip(self.ip_input_text):
+                        self._send_ping_to_ip(scanner, self.ip_input_text)
+                    else:
+                        self.icmp_result_text = "IP inválida. Formato: 192.168.1.100"
+                        self.show_icmp_result = True
+                        self.icmp_result_time = time.time()
+                # Click fuera del campo: desactivar
+                elif self.ip_input_active:
+                    self.ip_input_active = False
                 # Click en botón de ping: activar/desactivar modo ping
-                if self.ping_button_rect and self.ping_button_rect.collidepoint(mouse_pos):
+                elif self.ping_button_rect and self.ping_button_rect.collidepoint(mouse_pos):
                     self.ping_active = not self.ping_active
                 # Click sobre un host mientras el modo ping está activo: enviar Echo Request
                 elif scanner and self.ping_active:
